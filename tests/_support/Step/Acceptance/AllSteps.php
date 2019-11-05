@@ -33,8 +33,8 @@ class AllSteps extends \AcceptanceTester
 		$I->waitForElement('#wedevs-project-manager h3.pm-project-title', 30);
 		$I->click('New Project');
 		$I->fillField('#project_name', $this->faker()->text( 40 ));
-		$I->fillField('.pm-form-item > .pm-project-description', $this->faker()->text( 200 ));
 		$I->appendField('#project_cat', 'testing');
+		$I->fillField('.pm-form-item > .pm-project-description', $this->faker()->text( 200 ));
 		$I->fillField('user', $this->faker()->userName);
 		$I->wait(5);
 		$I->click(['css' => '.pm-more-user-form-btn']);
@@ -85,5 +85,33 @@ class AllSteps extends \AcceptanceTester
 		// $I->fillField('//body[@id="tinymce"]', $this->faker()->text( 200 ));
 		$I->click('//input[@id="create_milestone"]');
 		$I->wait(5);
+	}
+	public function updateProject()
+	{
+		$I = $this;
+		$I->click('Project Manager');
+      // $I->click()
+      $I->wait(10);
+      $I->click('.pm-project-column:nth-child(1) .pm-project-title > a');
+      // $I->wait(10);
+      $I->waitForElement('.pm-title-edit-settings',5);
+      $I->click('.pm-title-edit-settings');
+      $I->fillField('user', $this->faker()->userName);
+      $I->wait(5);
+      $I->click(['css' => '.pm-more-user-form-btn']);
+      $I->wait(5);
+      $I->fillField('user_name', $this->faker()->userName);
+      $I->fillField('first_name', $this->faker()->firstName);
+      $I->fillField('last_name', $this->faker()->lastName);
+      $I->fillField('email', $this->faker()->email);
+      $I->click('Create User');
+      $I->wait(5);
+      // $I->click(['css' => '#update_project']);
+      $I->click(['xpath' => '//input[@id="update_project"]']);
+
+      // $I->submitForm('.pm-form pm-project-form', 'update_project' );
+      // $I->submitForm('//form[@id=update_project]', 'update_project');
+
+      // $I->click(Locator::firstElement('//div[@id="wedevs-project-manager"]/div[3]/div[2]/div/div/div/div/div[2]/div/div/div/article/div/h3/a'));
 	}
 }
