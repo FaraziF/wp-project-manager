@@ -9,10 +9,10 @@ class AllSteps extends \AcceptanceTester
 	{
 		$I = $this;
 		$I->amOnPage('/wp-admin');
-    $I->fillField('Username', 'admin');
-    $I->fillField('Password', 'admin');
-    $I->checkOption('rememberme');
-    $I->click('Log In');
+	    $I->fillField('Username', 'admin');
+	    $I->fillField('Password', 'admin');
+	    $I->checkOption('rememberme');
+	    $I->click('Log In');
 	}
 	public function createCategorie()
 	{
@@ -113,5 +113,11 @@ class AllSteps extends \AcceptanceTester
       // $I->submitForm('//form[@id=update_project]', 'update_project');
 
       // $I->click(Locator::firstElement('//div[@id="wedevs-project-manager"]/div[3]/div[2]/div/div/div/div/div[2]/div/div/div/article/div/h3/a'));
+	}
+	public function createTask()
+	{
+		$I = $this;
+		$I->fillField('//div/div/div/div/input', $this->faker()->text( 100 ));
+	    $I->click('//div[3]/div/div/div[2]/div/div/div/div/div/a/span');//press add task
 	}
 }
