@@ -37,11 +37,14 @@ module.exports = function(grunt) {
                     '!webpack.config.js',
                     '!tmp/**',
                     '!views/assets/src/**',
+                    '!src/Pusher/webpack.config.js',
+                    '!src/Pusher/views/assets/src/**',
                     '!debug.log',
                     '!phpunit.xml',
                     '!export.sh',
                     '!.gitignore',
                     '!.gitmodules',
+                    '!.env',
                     '!npm-debug.log',
                     '!plugin-deploy.sh',
                     '!readme.md',
@@ -62,6 +65,7 @@ module.exports = function(grunt) {
                     '!phpcs.xml.dist',
                     '!pm.sublime-project',
                     '!pm.sublime-workspace',
+                    '!postman_collection.json',
                     '!views/assets/css/Single Task Page.json',
                     '!views/assets/vendor/wp-hooks/wp-hooks.js',
                     '!**/*~'
@@ -144,9 +148,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks( 'grunt-run' );
 
 
-    grunt.registerTask( 'release', [
-        'run',
-    ]);
+    // grunt.registerTask( 'release', [
+    //     'run',
+    // ]);
 
     grunt.registerTask( 'release', [
         'clean',

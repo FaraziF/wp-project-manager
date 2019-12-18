@@ -546,6 +546,9 @@ var PM_TaskList_Mixin = {
 
                     pmBus.$emit('pm_after_create_task', res, args);
 
+                    //For component trigger <component @pm_after_create_task="your_function"></component>
+                    self.$emit('pm_after_create_task', res, args);
+
                 },
 
                 error (res) { 
@@ -789,6 +792,8 @@ var PM_TaskList_Mixin = {
                     data.append( 'files[]', decode );
                 }
             });
+
+            data.append('is_admin', PM_Vars.is_admin);
 
 
             var request_data = {
