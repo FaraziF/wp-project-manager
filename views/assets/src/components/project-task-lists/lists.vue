@@ -48,8 +48,16 @@
                             </div>
                         </div>
                         <div :class="!isListFetch ? 'lists-wrap' : ''">
-                            <div class="task-field" v-if="can_create_task && !isArchivedPage">
-                                <new-task-form  :list="list" :focus="true"></new-task-form>
+                            <div 
+                                class="task-field" 
+                                v-if="can_create_task && !isArchivedPage && parseInt(current_page_number)<=1"
+                            >
+                                <new-task-form  
+                                    :list="list" 
+                                    :options="{
+                                        focus: true
+                                    }"
+                                />
                             </div>
 
                             <div class="list-items">
@@ -101,7 +109,11 @@
                                             <span>{{ __('This is a system default task list. Any task without an assigned tasklist will appear here.', 'wedevs-project-manager') }}</span>
                                         </div>
 
-                                        <list-tasks v-if="inboxList.expand" :list="inboxList"></list-tasks>
+                                        <list-tasks 
+                                            v-if="inboxList.expand" 
+                                            :list="inboxList"
+                                            :isActiveFilter="isActiveFilter"
+                                        />
                                     </li>
                                 </ul>
                                 
@@ -182,7 +194,11 @@
                                             <span v-if="isInbox(list.id)">{{ __('This is a system default task list. Any task without an assigned tasklist will appear here.', 'wedevs-project-manager') }}</span>
                                         </div>
 
-                                        <list-tasks v-if="list.expand" :list="list"></list-tasks>
+                                        <list-tasks 
+                                            v-if="list.expand" 
+                                            :list="list"
+                                            :isActiveFilter="isActiveFilter"
+                                        />
                                     </li>
 
                                     <li v-if="!lists.length">
@@ -392,7 +408,7 @@
                 asyncListLoading: false,
                 taskFilterSpinner: false,
                 searchTasktitle: '',
-                isfilterQueryRunning: false
+                isfilterQueryRunning: false,
             }
         },
 
@@ -589,7 +605,7 @@
                 this.setSearchData();
                 this.isActiveFilter = true;
                 this.filterRequent();
-            } 
+            }
         },
 
         methods: {
@@ -608,7 +624,8 @@
                     name: 'single_list',
                     params: { 
                         project_id: this.project_id,
-                        list_id: list.id
+                        list_id: list.id,
+                        with: 'incomplete_tasks,complete_tasks,comments'
                     }
                 });
             },
@@ -792,8 +809,12 @@
                     this.$router.push({
                         query: {}
                     });
-
-                    this.getLists();
+                    
+                    this.getLists({
+                        callback () {
+                            pm.NProgress.done();
+                        }
+                    });
                 } 
             },
 
@@ -1071,15 +1092,6 @@
                         box-shadow: none;
                     }
                     .update-button {
-                        position: absolute;
-                        right: 0;
-                        top: 0px;
-                        background: #fafafa !important;
-                        color: #fff !important;
-                        font-size: 12px;
-                        font-weight: bolder;
-                        padding: 5px 8px !important;
-                        border: 1px solid #ddd;
 
                         &:hover {
                             background: #d7dee2 !important;

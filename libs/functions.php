@@ -431,7 +431,7 @@ function pm_user_can( $cap, $project_id, $user_id = false ) {
 function pm_has_manage_capability( $user_id = false ) {
     $user_id = $user_id ? intval( $user_id ) : get_current_user_id();
     $user    = get_user_by( 'id', $user_id );
-
+    
     if ( !$user->roles || !is_array($user->roles) ) {
         return false;
     }
@@ -803,7 +803,30 @@ function pm_get_capabilities_relation( $role ) {
 }
 
 
-function pm_get_prepare_format( $ids, $is_string = false  ) {
+// function pm_get_prepare_format( $ids, $is_string = false  ) {
+//     // how many entries will we select?
+//     $how_many = count( $ids );
+
+//     // prepare the right amount of placeholders
+//     // if you're looing for strings, use '%s' instead
+//     if( $is_string ) {
+//         $placeholders = array_fill( 0, $how_many, '%s' );
+//     } else {
+//         $placeholders = array_fill( 0, $how_many, '%d' );
+//     }
+
+//     // glue together all the placeholders...
+//     // $format = '%d, %d, %d, %d, %d, [...]'
+//     $format = implode( ', ', $placeholders );
+
+//     return $format;
+// }
+
+function pm_get_prepare_format( $ids, $is_string = false ) {
+
+    
+    $ids = pm_get_prepare_data( $ids );
+
     // how many entries will we select?
     $how_many = count( $ids );
 
@@ -822,6 +845,35 @@ function pm_get_prepare_format( $ids, $is_string = false  ) {
     return $format;
 }
 
+function pm_get_prepare_data( $args, $delimiter = ',' ) {
+
+    $new = [];
+
+    if ( is_array( $args ) ) {
+        foreach ( $args as $date_key => $value ) {
+            if ( empty( $value ) ) {
+                continue;
+            }
+
+            $new[trim($date_key)] = trim( $value );
+        }
+    }
+
+    if ( ! is_array( $args ) ) {
+        $args = explode( $delimiter, $args );
+
+        foreach ( $args as $date_key => $value ) {
+            if ( empty( $value ) ) {
+                continue;
+            }
+
+            $new[trim($date_key)] = trim( $value );
+        }
+    }
+
+    return $new;
+}
+
 /**
  * Clean variables using pm_clean. Arrays are cleaned recursively.
  * Non-scalar values are ignored.
@@ -836,3 +888,278 @@ function pm_clean( $var ) {
         return is_scalar( $var ) ? sanitize_text_field( wp_unslash( $var ) ) : $var;
     }
 }
+
+/**
+ * Get Dashboard slug
+ *
+ * @since 1.0.0
+ * @return string
+ */
+function pm_frontend_slug() {
+    $slug = get_option( 'pm_frontend_slug' );
+    if ( ! $slug ) {
+        $slug = 'pm';
+    }
+
+    return apply_filters( 'pm_frontend_slug', sanitize_title( $slug ) );
+}
+
+/**
+ * Get dashboard url
+ *
+ * @return string
+ */
+function pm_frontend_url() {
+    $site_url       = get_site_url();
+    $dashboard_slug = ltrim( get_pm_frontend_slug(), '/' );
+
+    return trailingslashit( $site_url ) . $dashboard_slug;
+}
+
+/**
+ * Get dashboard title
+ *
+ * @return string
+ */
+function pm_dashboard_title() {
+    $dashboard_title = get_option( 'pm_frontend_dashboard_title' );
+
+    if ( ! $dashboard_title ) {
+        $dashboard_title = __( 'Project Manager', 'wedevs-project-manager' );
+    }
+
+    return apply_filters( 'pm_dashboard_title', $dashboard_title );
+}
+
+/**
+ * Get frontend query var
+ *
+ * @return string
+ */
+function pm_register_query_var() {
+    return apply_filters( 'pm_frontend_query_var', 'pm_dashboard' );
+}
+
+/**
+ * Get HTML wrap
+ *
+ * @return string
+ */
+function pm_root_element() {
+    $id = pm_root_element_id();
+    return apply_filters( 'pm_root_element', '<div id="'. $id .'"></div>' );
+}
+
+/**
+ * Get HTML wrap id
+ *
+ * @return string
+ */
+function pm_root_element_id() {
+    return apply_filters( 'pm_root_element_id', 'wedevs-pm' );
+}
+
+/**
+ * Get admin slug
+ *
+ * @return string
+ */
+function pm_admin_slug() {
+    return apply_filters( 'pm_admin_slug', 'pm_projects' );
+}
+
+/**
+ * Get admin url
+ *
+ * @return string
+ */
+function pm_admin_url() {
+    $slug = pm_admin_slug();
+    return apply_filters( 'pm_admin_url', admin_url( "admin.php?page={$slug}" ) );
+}
+
+/**
+ * Dashboard Logo
+ *
+ * @return void
+ */
+function pm_dashboard_logo() {
+    // $logo = get_option( 'pm_frontend_logo' );
+    // if ( $logo ) {
+    //     return wp_get_attachment_url( $logo );
+    // }
+
+    // return ERP_DASHBOARD_ASSETS . '/images/pm-logo.png';
+}
+
+function pm_active_for_network() {
+    
+    $plugins     = get_plugins();
+    $plugin_path = false;
+    
+    foreach ( $plugins as $path => $plugin ) {
+        if ( $plugin['TextDomain'] == 'wedevs-project-manager' ) {
+            $plugin_path = $path;
+        }
+    }
+
+    if ( empty( $plugin_path ) ) {
+        return false;
+    }
+
+    if ( is_plugin_active_for_network( $plugin_path ) ) {
+        return true;
+    }
+
+    return false;
+}
+
+function pm_user_meta_key() {
+    global $wpdb;
+
+    return $wpdb->prefix . 'capabilities';
+}
+
+function pm_can_create_user_at_project_create_time() {
+    return apply_filters( 'pm_can_create_user_at_project_create_time', true );
+}
+
+function pm_get_estimation_type() { 
+    if ( ! function_exists( 'pm_pro_is_module_active' ) ) {
+        return 'task';
+    }
+
+    if( ! pm_pro_is_module_active( 'sub_tasks/sub_tasks.php' ) ) {
+        return 'task';
+    }
+
+    $db_est_type = pm_get_setting( 'estimation_type' );
+
+    if ( empty( $db_est_type ) ) {
+        return 'task';
+    }
+
+    return $db_est_type;
+}
+
+function pm_second_to_time( $seconds ) {
+    $total_second = $seconds;
+    // extract hours
+    $hours = floor( $seconds / (60 * 60) );
+
+    // extract minutes
+    $divisor_for_minutes = $seconds % (60 * 60);
+    $minutes = floor( $divisor_for_minutes / 60 );
+
+    // extract the remaining seconds
+    $divisor_for_seconds = $divisor_for_minutes % 60;
+    $seconds = ceil( $divisor_for_seconds );
+
+    // return the final array
+    $obj = array(
+        'hour' => str_pad( (int) $hours, 2, '0', STR_PAD_LEFT ),
+        'minute' => str_pad( (int) $minutes, 2, '0', STR_PAD_LEFT ),
+        'second' => str_pad( (int) $seconds, 2, '0', STR_PAD_LEFT ),
+        'total_second' => $total_second
+    );
+
+    return $obj;
+}
+
+/**
+ * [pm_get_projects description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_projects( $params ) {
+     return WeDevs\PM\Project\Helper\Project::get_results( $params );
+}
+
+/**
+ * [pm_get_task_lists description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_task_lists( $params ) {
+     return \WeDevs\PM\Task_List\Helper\Task_List::get_results( $params );
+}
+
+/**
+ * [pm_get_tasks description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_tasks( $params ) {
+     return \WeDevs\PM\task\Helper\Task::get_results( $params );
+}
+
+/**
+ * [pm_get_milestones description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_milestones( $params ) {
+     return \WeDevs\PM\Milestone\Helper\Milestone::get_results( $params );
+}
+
+/**
+ * [pm_get_discussions description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_discussions( $params ) {
+     return \WeDevs\PM\Discussion_Board\Helper\Discussion_Board::get_results( $params );
+}
+
+/**
+ * [pm_get_comments description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_comments( $params ) {
+     return \WeDevs\PM\Comment\Helper\Comment::get_results( $params );
+}
+
+/**
+ * [pm_get_files description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_files( $params ) {
+     return \WeDevs\PM\File\Helper\File::get_results( $params );
+}
+
+/**
+ * [pm_get_users description]
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_get_users( $params ) {
+     return \WeDevs\PM\User\helper\User::get_results( $params );
+}
+
+/**
+ * check the query is single data or not
+ * @param  array|string $params
+ * @return [type]
+ */
+function pm_is_single_query( $params ) {
+    if ( empty( $params['id'] ) ) {
+        return false;
+    }
+
+    if ( is_array( $params['id'] ) ) {
+        return false;
+    }
+
+    $id = pm_get_prepare_data( $params['id'] );
+
+    if ( count( $id ) == 1 ) {
+        return true;
+    }
+
+    return false;
+}
+
+
+

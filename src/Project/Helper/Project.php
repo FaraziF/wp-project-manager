@@ -45,11 +45,7 @@ class Project {
 	 * @return Object
 	 */
 	public static function getInstance() {
-        if ( !self::$_instance ) {
-            self::$_instance = new self();
-        }
-
-        return self::$_instance;
+        return new self();
     }
 
     /**
@@ -81,7 +77,6 @@ class Project {
 	 * @return array
 	 */
 	public static function get_results( $params ) {
-		//global $wpdb;
 
 		$self = self::getInstance();
 		$self->query_params = $params;
@@ -97,8 +92,8 @@ class Project {
 
 		$response = $self->format_projects( $self->projects );
 
-		if( $self->is_single_query && count( $response['data'] ) ) {
-			return ['data' => $response['data'][0]] ;
+		if( pm_is_single_query( $params ) ) {
+			return ['data' => $response['data'][0]];
 		}
 
 		return $response;
@@ -129,7 +124,7 @@ class Project {
 
 
 		$response['data']  = $projects;
-		$response ['meta'] = $this->set_projects_meta();
+		$response['meta'] = $this->set_projects_meta();
 
 		return $response;
 	}
@@ -203,13 +198,16 @@ class Project {
 		global $wpdb;
 		$tb_projects = pm_tb_prefix() . 'pm_projects';
 		$tb_meta     = pm_tb_prefix() . 'pm_meta';
+		$current_user_id = get_current_user_id();
 
 		$query = "SELECT COUNT($tb_projects.id) as favourite_project 
 			FROM  $tb_projects
 			LEFT JOIN $tb_meta ON $tb_meta.project_id = $tb_projects.id
-			WHERE $tb_meta.meta_key = %s";
+			WHERE $tb_meta.meta_key = %s 
+			AND $tb_meta.entity_id = %d
+			AND $tb_meta.meta_value is not null";
 
-		$favourite_project_count = $wpdb->get_var( $wpdb->prepare( $query, 'favourite_project' ) );
+		$favourite_project_count = $wpdb->get_var( $wpdb->prepare( $query, 'favourite_project', $current_user_id ) );
 
 		return $favourite_project_count;
 
@@ -415,9 +413,14 @@ class Project {
 			unset( $result->project_id );
 			$metas[$project_id] = $result;
 		}
-
+		
 		foreach ( $this->projects as $key => $project ) {
-			$project->favourite = isset( $metas[$project->id] ) ? true : false;
+			if ( ! isset( $metas[$project->id] ) ) {
+				$project->favourite = false;
+				continue;
+			}
+			$project_meta = $metas[$project->id]; 
+			$project->favourite = empty( $project_meta->meta_value ) ? false : true;
 		}
 		
 		return $this;
@@ -944,14 +947,26 @@ class Project {
 		}
 
 		$tb_assignees   = pm_tb_prefix() . 'pm_role_user';
-		$tb_users       = pm_tb_prefix() . 'users';
+		$tb_users       = $wpdb->base_prefix . 'users';
+		$tb_user_meta   = $wpdb->base_prefix . 'usermeta';
 		$project_format = pm_get_prepare_format( $this->project_ids );
 		$query_data     = $this->project_ids;
 
-		$query = "SELECT DISTINCT usr.ID as id, usr.display_name, usr.user_email as email, asin.project_id, asin.role_id
-			FROM $tb_users as usr
-			LEFT JOIN $tb_assignees as asin ON usr.ID = asin.user_id
-			where asin.project_id IN ($project_format)";
+		if ( is_multisite() ) {
+			$meta_key = pm_user_meta_key();
+
+			$query = "SELECT DISTINCT usr.ID as id, usr.display_name, usr.user_email as email, asin.project_id, asin.role_id
+				FROM $tb_users as usr
+				LEFT JOIN $tb_assignees as asin ON usr.ID = asin.user_id
+				LEFT JOIN $tb_user_meta as umeta ON umeta.user_id = usr.ID
+				where asin.project_id IN ($project_format) 
+				AND umeta.meta_key='$meta_key'";
+		} else {
+			$query = "SELECT DISTINCT usr.ID as id, usr.display_name, usr.user_email as email, asin.project_id, asin.role_id
+				FROM $tb_users as usr
+				LEFT JOIN $tb_assignees as asin ON usr.ID = asin.user_id
+				where asin.project_id IN ($project_format)";
+		} 
 
 		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 		
@@ -1089,6 +1104,7 @@ class Project {
 			
 			$this->where .= $wpdb->prepare( " 
 				AND {$wpdb->prefix}pm_meta.entity_id=%d
+				AND {$wpdb->prefix}pm_meta.meta_value IS NOT NULL
 				AND {$wpdb->prefix}pm_meta.meta_key=%s", 
 				$current_user_id, 'favourite_project'
 			);
@@ -1260,8 +1276,12 @@ class Project {
 		$per_page = isset( $this->query_params['per_page'] ) ? $this->query_params['per_page'] : false;
 
 		if ( ! empty( $per_page ) && intval( $per_page ) ) {
-			return intval( $per_page );
+			return (int) $per_page;
 		}
+
+		$per_page = pm_get_setting( 'project_per_page' );
+
+		return empty( $per_page ) ? 10 : (int) $per_page;
 
 		return 10;
 	}

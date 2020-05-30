@@ -49,7 +49,7 @@
                                 list_id: task.task_list_id
                             }
                         }">
-                            {{ task.task_list.title }}
+                            {{ task.task_list.data.title }}
                         </router-link>
                     </td>
                     <td>
@@ -106,6 +106,9 @@
 
                     }
 
+                }
+                .flaticon-sort {
+                    margin-top: 6px;
                 }
             }   
         }
@@ -225,7 +228,8 @@
                 this.individualProjectId = task.project_id;
             },
             getOverdueValue (task) {
-                var dueDate = pm.Moment(task.due_date).add(1, "days").format('YYYY-MM-DD');
+                let date = new Date(task.due_date.date);
+                var dueDate = pm.Moment(date).add(1, "days").format('YYYY-MM-DD');
                 
                 return this.relativeDate(dueDate);
     

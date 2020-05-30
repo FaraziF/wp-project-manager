@@ -28,6 +28,7 @@ use WeDevs\PM\Task_List\Transformers\List_Task_Transformer;
 use WeDevs\PM\Activity\Models\Activity;
 use WeDevs\PM\Activity\Transformers\Activity_Transformer;
 use WeDevs\PM\Task_List\Controllers\Task_List_Controller as Task_List_Controller;
+use WeDevs\PM\Task\Observers\Task_Observer;
 
 
 class Task_Controller {
@@ -60,7 +61,9 @@ class Task_Controller {
             $tasks = Task::where( 'project_id', $project_id )
                 ->parent()
                 ->where('title', 'LIKE', '%'.$search.'%');
+            
             $tasks = apply_filters( 'pm_task_index_query', $tasks, $project_id, $request );
+            
             $tasks = $tasks->orderBy( 'created_at', 'DESC')
                 ->get();
 
@@ -91,12 +94,17 @@ class Task_Controller {
         return $this->get_task( $task_id, $project_id, $request->get_params() );
     }
 
-    public static function get_task( $task_id, $project_id, $request=[] ) {
+    public static function get_task( $task_id, $project_id = false, $request=[] ) {
 
-        $task = Task::with('task_lists')->where( 'id', $task_id )
-            ->parent()
-            ->where( 'project_id', $project_id );
+        $task = Task::with( 'task_lists' )
+            ->where( 'id', $task_id )
+            ->parent();
 
+        if ( $project_id ) {
+            $task = $task->where( 'project_id', $project_id );
+            
+        }
+        
         $task = apply_filters( 'pm_task_show_query', $task, $project_id, $request );
         $task = $task->first();
 
@@ -105,9 +113,11 @@ class Task_Controller {
                 'message' => pm_get_text('success_messages.no_element')
             ] );
         }
+        
         $resource = new Item( $task, new Task_Transformer );
-        $response =self::getInstance()->get_response( $resource );
+        $response = self::getInstance()->get_response( $resource );
         $response = apply_filters('pm_get_task', $response , $request);
+        
         return $response ;
     }
 
@@ -395,6 +405,10 @@ class Task_Controller {
             ->where( 'project_id', $project_id )
             ->first();
 
+        $resource = new Item( $task, new Task_Transformer );
+        $resource = $this->get_response( $resource );
+        $list_id  = $resource['data']['task_list_id'];
+
         do_action( "pm_before_delete_task", $task, $data );
         do_action( 'cpm_delete_task_prev', $task_id, $project_id, $project_id, $task );
 
@@ -415,13 +429,22 @@ class Task_Controller {
         // Delete the task
         $task->delete();
 
+        $list = ( new Task_List_Controller )->get_list( [
+            'project_id'   => $project_id,
+            'task_list_id' => $list_id
+        ] );
+
         do_action( 'cpm_delete_task_after', $task_id, $project_id );
         do_action( 'pm_after_delete_task', $task_id, $project_id );
 
-        return $message = [
+        $message = [
             'message' => pm_get_text('success_messages.task_deleted'),
             'activity' => $self->last_activity( 'task', $task->id ),
+            'task'     => $resource,
+            'list'     => $list
         ];
+
+        return $this->get_response( $resource, $message ); 
     }
     public function destroy( WP_REST_Request $request ) {
         // Grab user inputs
@@ -433,6 +456,10 @@ class Task_Controller {
             ->where( 'project_id', $project_id )
             ->first();
 
+        $resource = new Item( $task, new Task_Transformer );
+        $resource = $this->get_response( $resource );
+        $list_id  = $resource['data']['task_list_id'];
+        
         do_action("pm_before_delete_task", $task, $request->get_params() );
         do_action( 'cpm_delete_task_prev', $task_id, $project_id, $project_id, $task );
 
@@ -453,15 +480,22 @@ class Task_Controller {
         // Delete the task
         $task->delete();
 
+        $list = ( new Task_List_Controller )->get_list( [
+            'project_id'   => $project_id,
+            'task_list_id' => $list_id
+        ] );
+
         do_action( 'cpm_delete_task_after', $task_id, $project_id );
         do_action( 'pm_after_delete_task', $task_id, $project_id );
 
         $message = [
-            'message' => pm_get_text('success_messages.task_deleted'),
+            'message'  => pm_get_text('success_messages.task_deleted'),
             'activity' => $this->last_activity( 'task', $task->id ),
+            'task'     => $resource,
+            'list'     => $list
         ];
 
-        return $this->get_response(false, $message);
+        return array_merge( $resource, $message );
     }
 
     public function attach_to_board( WP_REST_Request $request ) {
@@ -619,11 +653,23 @@ class Task_Controller {
             }
         }
 
+        $list = ( new Task_List_Controller )->get_list( [
+            'project_id'   => $project_id,
+            'task_list_id' => $list_id
+        ] );
+
+        $sender_list = ( new Task_List_Controller )->get_list( [
+            'project_id'   => $project_id,
+            'task_list_id' => $sender_list_id
+        ] );
+
         wp_send_json_success( [
             'task'           => $task,
             'sender_list_id' => $sender_list_id,
             'list_id'        => $list_id,
-            'project_id'     => $project_id
+            'project_id'     => $project_id,
+            'receive_list'           => $list,
+            'sender_list'    => $sender_list
         ] );
     }
 
@@ -745,6 +791,13 @@ class Task_Controller {
     public function filter( WP_REST_Request $request ) {
         $per_page     = pm_get_setting( 'list_per_page' );
         $per_page     = empty( $per_page ) ? 20 : $per_page;
+
+        $it_per_page   = pm_get_setting( 'incomplete_tasks_per_page' );
+        $it_per_page   = empty( $per_page ) ? 20 : intval( $per_page );
+
+        $ct_per_page   = pm_get_setting( 'complete_tasks_per_page' );
+        $ct_per_page   = empty( $per_page ) ? 20 : intval( $per_page );
+
         $page         = $request->get_param('page');
         $project_id   = $request->get_param('project_id');
 
@@ -906,7 +959,7 @@ class Task_Controller {
         return $returns;
     }
 
-    public function get_incomplete_task_ids( $list_ids, $project_id ) {
+    public function get_incomplete_task_ids( $list_ids, $project_id, $not_in_tasks = [] ) {
         global $wpdb;
 
         if ( empty( $list_ids ) ) {
@@ -927,11 +980,16 @@ class Task_Controller {
             $start = 0;
         }
 
-        $list_ids   = implode(',', $list_ids );
-        $permission_join = apply_filters( 'pm_incomplete_task_query_join', '', $project_id );
-        $permission_where = apply_filters( 'pm_incomplete_task_query_where', '', $project_id );
+        $list_ids         = implode(',', $list_ids );
+        $permission_join  = apply_filters( 'pm_incomplete_task_query_join', '', $project_id );
+        $where = apply_filters( 'pm_incomplete_task_query_where', '', $project_id );
 
-        $sql = "SELECT ibord_id, GROUP_CONCAT( DISTINCT task.task_id order by task.iorder asc) as itasks_id
+        if ( ! empty( $not_in_tasks ) ) {
+            $not_in_tasks = implode( ',', $not_in_tasks );
+            $where .= " AND itasks.id NOT IN ({$not_in_tasks})";
+        }
+
+        $sql = "SELECT ibord_id, GROUP_CONCAT( DISTINCT task.task_id order by task.iorder DESC) as itasks_id
             FROM
                 (
                     SELECT
@@ -947,15 +1005,12 @@ class Task_Controller {
                         itasks.status=0
                         AND ibord.board_type='task_list'
                         AND ibord.boardable_type='task'
-                        $permission_where
+                        $where
                         order by iorder asc
 
                 ) as task
 
             group by ibord_id";
-
-        //pmpr($sql);
-        //die();
 
         $results = $wpdb->get_results( $sql );
 
@@ -986,7 +1041,7 @@ class Task_Controller {
         return $results;
     }
 
-    public function get_complete_task_ids( $list_ids, $project_id ) {
+    public function get_complete_task_ids( $list_ids, $project_id, $not_in_tasks = [] ) {
         global $wpdb;
 
         if ( empty( $list_ids ) ) {
@@ -1009,9 +1064,14 @@ class Task_Controller {
 
         $list_ids         = implode(',', $list_ids );
         $permission_join  = apply_filters( 'pm_complete_task_query_join', '', $project_id );
-        $permission_where = apply_filters( 'pm_complete_task_query_where', '', $project_id );
+        $where = apply_filters( 'pm_complete_task_query_where', '', $project_id );
 
-        $sql = "SELECT ibord_id, GROUP_CONCAT( DISTINCT task.task_id order by task.iorder asc) as itasks_id
+        if ( ! empty( $not_in_tasks ) ) {
+            $not_in_tasks = implode( ',', $not_in_tasks );
+            $where .= " AND itasks.id NOT IN ({$not_in_tasks})";
+        }
+
+        $sql = "SELECT ibord_id, GROUP_CONCAT( DISTINCT task.task_id order by task.iorder DESC) as itasks_id
             FROM
                 (
                     SELECT
@@ -1027,7 +1087,7 @@ class Task_Controller {
                         itasks.status=1
                         AND ibord.board_type='task_list'
                         AND ibord.boardable_type='task'
-                        $permission_where
+                        $where
                         order by iorder asc
 
                 ) as task
@@ -1050,13 +1110,19 @@ class Task_Controller {
     public function get_tasks( $task_ids, $args=[] ) {
         global $wpdb;
 
+        foreach ( (array) $task_ids as $key => $task_id ) {
+            if ( empty( intval( $task_id ) ) ) {
+                unset( $task_ids[$key] );
+            }
+        }
+
         $default = [
             'list_task_transormer_filter' => true
         ];
 
         $args = wp_parse_args( $args, $default );
 
-        if ( empty( $list_ids ) ) {
+        if ( empty( $task_ids ) ) {
             $task_ids[] = 0;
         }
 
@@ -1094,7 +1160,7 @@ class Task_Controller {
                 $join->on( $task . '.id', '=', $assignees . '.task_id' );
             })
 
-            ->groupBy($task . '.id')
+            ->groupBy( $task . '.id' )
             ->orderBy( $list . '.order', 'DESC' );
 
         $task_collection = apply_filters( 'list_tasks_filter_query', $task_collection, $args );
@@ -1110,6 +1176,119 @@ class Task_Controller {
 
         return $tasks;
     }
-}
 
+    public function duplicate( WP_REST_Request $request ) {
+        $task_id    = $request->get_param( 'task_id' );
+        
+        $task           = $this->get_task( $task_id );
+        $list_id        = $task['data']['task_list_id'];
+        $task           = Task::find( $task_id );
+        $task->title    = __( 'Copy ', 'wedevs-project-manager' ) . $task->title;
+        $project_id     = $task->project_id;
+        $duplicate_task = $this->task_duplicate( $task, $list_id, $project_id );
+        $new_task       = $this->get_task( $duplicate_task->id );
+
+        do_action( 'pm_after_task_duplicate', $new_task, $task  );
+
+        wp_send_json_success( 
+            [
+                'task'       => $new_task['data'],
+                'list_id'    => $list_id,
+                'project_id' => $project_id,
+
+            ] 
+        );
+    }
+
+    public function task_duplicate ( Task $task, $list_id = false, $project_id = false  ) {
+        $task_data      = [];
+        $boardable_data = [];
+        $assignee_data  = [];
+        $meta_data      = [];
+
+        if ( $project_id ) {
+            $task_data    ['project_id'] = $project_id;
+            $assignee_data['project_id'] = $project_id;
+            $meta_data    ['project_id'] = $project_id;
+        }
+
+        $newTask = $this->replicate( $task, $task_data );
+
+        $meta = [
+            'task_title' => $newTask->title,
+        ];
+
+        Task_Observer::log_activity( $newTask, 'create_task', 'create', $meta );
+
+        // Include task and task list
+        $boardable_data['boardable_id'] = $newTask->id;
+        $assignee_data ['task_id']      = $newTask->id;
+        $meta_data     ['entity_id']    = $newTask->id;
+
+        if ( $list_id ) {
+            $boardable_data['board_id'] = $list_id;
+        }
+
+        foreach ( $task->boardables as $boardable ) {
+            $newBoardables = $this->replicate( $boardable, $boardable_data );
+        }
+
+        // Duplicate Assignee in this task
+
+        foreach ( $task->assignees as $assignee ) {
+            $newAssignee = $this->replicate( $assignee, $assignee_data );
+        }
+
+        foreach ( $task->metas as $meta ) {
+            $newMeta = $this->replicate( $meta, $meta_data );
+        }
+
+        do_action( 'cpm_task_duplicate_after', $newTask->id, $list_id, $project_id );
+        do_action( 'pm_task_duplicate_after', $newTask->id, $list_id, $project_id, $task );
+
+        return $newTask;
+    }
+
+    private function replicate( $model, $newValues=null, $fireEvents=false) {
+        $newModel = $model->replicate()->setRelations([]);
+
+        if ( $newValues !== null && is_array( $newValues ) ) {
+            foreach ($newValues as $key => $value) {
+                $newModel->{$key} = $value;
+            }
+        }
+
+        if ( !$fireEvents ) {
+            $newModel->unsetEventDispatcher();
+        }
+
+        if ( $newModel->save() ) {
+            return $newModel;
+        }
+    }
+
+    public function load_more_tasks( WP_REST_Request $request ) {
+        $list_id    = $request->get_param( 'list_id' );
+        $task_ids   = $request->get_param( 'task_ids' );
+        $project_id = $request->get_param( 'project_id' );
+        $status     = $request->get_param( 'status' );
+
+        if ( (int) $status ) {
+            $task_ids = $this->get_complete_task_ids( [$list_id], $project_id, $task_ids );   
+        } else {
+            $task_ids = $this->get_incomplete_task_ids( [$list_id], $project_id, $task_ids );   
+        }
+        
+        $tasks = pm_get_tasks( [ 'id' => $task_ids ] );
+
+        wp_send_json_success(
+            [
+                'project_id' => $project_id,
+                'list_id'    => $list_id,
+                'tasks'      => $tasks,
+                'status'     => (int) $status
+            ]
+        );
+    }
+}
 

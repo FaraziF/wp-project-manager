@@ -79,7 +79,9 @@ class Enqueue_Scripts {
 			'is_admin'    => is_admin(),
 			'language'    => apply_filters( 'pm_get_jed_locale_data', [ 'pm' => pm_get_jed_locale_data( 'wedevs-project-manager' ) ] ),
 			'date_format' => get_option( 'date_format' ),
-			'time_format' => get_option( 'time_format' )
+			'time_format' => get_option( 'time_format' ),
+			'id'          => pm_root_element_id(),
+			'can_add_user_project_create_time' => pm_can_create_user_at_project_create_time()
         ];
 
         $localize = self::filter( $localize );

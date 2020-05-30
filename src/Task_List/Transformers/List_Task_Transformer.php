@@ -66,7 +66,7 @@ class List_Task_Transformer extends TransformerAbstract {
             'avatar_url'        => get_avatar_url( $user->user_email ),
         ];
 
-        return $user;
+        return [ 'data' => $data ];
     }
 
 
@@ -143,8 +143,9 @@ class List_Task_Transformer extends TransformerAbstract {
             
             if ( empty( $assign->assigned_to ) ) continue;
             $user = get_user_by( 'id', $assign->assigned_to );
-
-             $data = [
+            if ( empty( $user ) ) continue;
+            
+            $data = [
                 'id'                => (int) $user->ID,
                 'username'          => $user->user_login,
                 'nicename'          => $user->user_nicename,

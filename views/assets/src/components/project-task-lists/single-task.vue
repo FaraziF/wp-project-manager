@@ -1,5 +1,5 @@
 <template>
-    <div id="pm-single-task-wrap">
+    <div id="pm-single-task-wrap" class="pm-single-task-wrap">
         <div class="nonsortable">
 
             <div v-if="loading" class="modal-mask half-modal pm-task-modal modal-transition">
@@ -35,8 +35,7 @@
                                     {{ __( 'Completed', 'wedevs-project-manager' ) }}
                                 </a>
 
-
-                                <a  class="incomplete" v-if="!task.status" href="#" @click.prevent="singleTaskDoneUndone()">
+                                <a class="incomplete" v-if="!task.status" href="#" @click.prevent="singleTaskDoneUndone()">
                                     <span class="icon-pm-incomplete pm-font-size-16" v-if="!show_spinner_status"></span>
                                     <span class="pm-spinner" v-if="show_spinner_status"></span>
                                     {{ __( 'Mark Complete', 'wedevs-project-manager' ) }}
@@ -60,7 +59,7 @@
                                                 <span class="title-anchor-menu">{{ __('Copy Link', 'wedevs-project-manager') }}</span>
                                             </a>
                                         </li>
-                                        <li class="pm-dark-hover" v-if="PM_Vars.is_pro && can_edit_task(task) && user_can('view_private_task')">
+                                     <!--    <li class="pm-dark-hover" v-if="PM_Vars.is_pro && can_edit_task(task) && user_can('view_private_task')">
 
                                             <a class="pm-dark-hover title-anchor-menu-a icon-pm-private pm-font-size-13" v-if="task.meta.privacy=='1'" @click.prevent="singleTaskLockUnlock(task)" href="#">
                                                 <span class="action-menu-span title-anchor-menu">{{ __('Make Visible', 'wedevs-project-manager') }}</span>
@@ -69,7 +68,7 @@
                                                 <span class="action-menu-span title-anchor-menu">{{ __('Make Private', 'wedevs-project-manager') }}</span>
                                             </a>
 
-                                        </li>
+                                        </li> -->
                                         <li  v-if="can_edit_task(task) || isArchivedTaskList(task)">
 
                                             <a class="pm-dark-hover title-anchor-menu-a icon-pm-delete pm-font-size-13" @click.prevent="selfDeleteTask({task: task, list: list})" href="#">
@@ -81,19 +80,21 @@
                             </div>
 
                         </div>
-
+                        
                         <div :class="singleTaskTitle(task) + ' task-title-wrap'">
                             <div class="task-title-text">
 
                                 <span v-if="is_task_title_edit_mode && can_edit_task(task)">
                                     <input
                                         v-model="task.title"
+                                        maxlength="200" 
                                         @blur="updateTaskTitle(task)"
                                         @keyup.enter="updateTaskTitle(task)"
-
+                                        @keyup="warningTitleCharacterLimit()"
                                         class="pm-task-title-activity pm-task-title-field"
-                                        type="text">
-                                        <span class="pm-spinner" v-if="show_spinner"></span>
+                                        type="text" 
+                                    />
+                                    <span class="pm-spinner" v-if="show_spinner"></span>
                                 </span>
 
                                 <span
@@ -164,14 +165,25 @@
                                 </div>
                             </div>
 
-
+                            
                             <div class="pm-flex option-icon-groups">
                                 <do-action :hook="'single_task_action'" :actionData="task"></do-action>
-                                <!--recurrent-->
-                                <span @click.prevent="singleTaskLockUnlock(task)" v-if="isTaskLock" :title="__('Task is visible for co-worker', 'wedevs-project-manager')" class="icon-pm-unlock pm-dark-hover pm-font-size-16"></span>
-                                <span @click.prevent="singleTaskLockUnlock(task)" v-if="isTaskUnlock" class="icon-pm-private pm-dark-hover pm-font-size-16"></span>
+                                
+                                <span v-if="PM_Vars.is_pro && can_edit_task(task) && user_can('view_private_task')">
+                                    <span 
+                                        v-if="typeof task.meta.privacy === 'undefined' || parseInt(task.meta.privacy)==0" 
+                                        @click.prevent="singleTaskLockUnlock(task)" 
+                                        :title="__('Task is visible for co-worker', 'wedevs-project-manager')" 
+                                        class="icon-pm-unlock pm-dark-hover pm-font-size-16"
+                                    />
+                                    <span 
+                                        v-if="parseInt(task.meta.privacy)==1" 
+                                        @click.prevent="singleTaskLockUnlock(task)" 
+                                        class="icon-pm-private pm-dark-hover pm-font-size-16"
+                                    />
+                                </span>
 
-                                <span v-if="has_task_permission()" id="pm-calendar-wrap"  v-pm-tooltip :title="__('Date', 'wedevs-project-manager')" @click.prevent="isTaskDateEditMode()" class="individual-group-icon calendar-group icon-pm-calendar pm-font-size-16">
+                                <span id="pm-calendar-wrap"  v-pm-tooltip :title="__('Date', 'wedevs-project-manager')" @click.prevent="isTaskDateEditMode()" class="individual-group-icon calendar-group icon-pm-calendar pm-font-size-16">
                                     <span v-if="(task.start_at.date || task.due_date.date )" :class="taskDateWrap(task.due_date.date) + ' pm-task-date-wrap pm-date-window'">
 
                                         <span :title="getFullDate(task.start_at.datetime)" v-if="task_start_field">
@@ -213,7 +225,8 @@
                                 <do-action :hook="'single_task_inline'" :actionData="doActionData"></do-action>
                             </div>
                         </div>
-                         <!-- v-if="has_task_permission()" -->
+                        <do-action :hook="'before_single_task_description'" :actionData="doActionData"></do-action>
+                        <!-- v-if="has_task_permission()" -->
                         <div id="description-wrap" class="description-wrap">
                             <div v-if="showdescriptionfield && has_task_permission()" @click.prevent="isTaskDetailsEditMode()"  class="action-content pm-flex">
                                 <span>
@@ -315,6 +328,14 @@
         .list-title {
             font-size: 12px;
             text-transform: uppercase;
+        }
+    }
+    .pm-single-task-wrap {
+        .option-icon-groups {
+            .pm-action-wrap {
+                display: flex;
+                align-items: center;
+            }
         }
     }
 
@@ -504,12 +525,23 @@
         },
 
         methods: {
+            warningTitleCharacterLimit () {
+                if(this.task.title.length >= 200) {
+                    pm.Toastr.warning(__('Maxmim character limit 200', 'wedevs-project-manager'));
+                }
+            },
+
             updateTaskTitle (task) {
+                if(task.title.length >= 200) {
+                    pm.Toastr.warning(__('Maxmim character limit 200', 'wedevs-project-manager'));
+                    return;
+                }
                 if(this.truckTitleUpdate == task.title) {
                     return;
                 }
                 this.updateTaskElement(task);
             },
+
             callBackDatePickerForm (date) {
 
                 let dateFrom = {
@@ -520,6 +552,7 @@
 
                 this.fromDate(dateFrom);
             },
+
             callBackDatePickerTo (date) {
 
                 let dateTo = {
@@ -530,6 +563,7 @@
 
                 this.fromDate(dateTo);
             },
+
             submitDescription (task) {
                 task.description.content = this.content.html.trim();
                 this.description_show_spinner = true;
@@ -849,7 +883,7 @@
                 var update_data  = {
                         'title': task.title,
                         'description': task.description.content,
-                        'estimation': task.estimation,
+                        'estimation': this.setMinuteToTime( task.estimation ),
                         'start_at': task.start_at ? task.start_at.date : '',
                         'due_date': task.due_date ? task.due_date.date : '',
                         'complexity': task.complexity,
@@ -898,6 +932,13 @@
                 this.httpRequest(request_data);
             },
 
+            setMinuteToTime (minute) {
+                minute = minute ? parseInt( minute ) : 0;
+                let time = this.stringToTime( minute*60 );
+
+                return `${time.hours}:${time.minutes}`;
+            },
+
             isTaskTitleEditMode () {
                 if (this.isArchivedTaskList(this.task)) {
                     return this.is_task_title_edit_mode = false;
@@ -911,6 +952,10 @@
 
             isTaskDateEditMode () {
                 if (this.isArchivedTaskList(this.task)) {
+                    return this.is_task_date_edit_mode = false;
+                }
+                
+                if( this.task.status ) {
                     return this.is_task_date_edit_mode = false;
                 }
 
@@ -975,14 +1020,15 @@
                 }
                 var self = this;
                 var data = {
-                    is_private: task.meta.privacy == '0' ? 1 : 0
+                    is_private: typeof task.meta.privacy === 'undefined' || task.meta.privacy == '0' ? 1 : 0
                 }
                 var request_data = {
                     url: self.base_url + '/pm/v2/projects/'+task.project_id+'/tasks/privacy/'+task.id,
                     type: 'POST',
                     data: data,
                     success (res) {
-                        task.meta.privacy = data.is_private;
+                        //task.meta.privacy = data.is_private;
+                        pm.Vue.set( task.meta, 'privacy', data.is_private );
 
                         if(data.is_private) {
                             pm.Toastr.success(self.__('Task marked as private', 'wedevs-project-manager'));
@@ -1013,7 +1059,7 @@
                 var format = 'MMM D, YYYY';
 
                 return pm.Moment( date ).format( String( format ) );
-            }
+            },
         },
 
         destroyed () {

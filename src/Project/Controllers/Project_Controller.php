@@ -245,7 +245,7 @@ class Project_Controller {
 
 	public function update( WP_REST_Request $request ) {
 		// Extract non empty inputs and update project
-		$data    = $this->extract_non_empty_values( $request );
+		$data    = $request->get_params();//$this->extract_non_empty_values( $request );
 		$project = Project::find( $data['id'] );
 
 		$project->update_model( $data );
@@ -384,13 +384,15 @@ class Project_Controller {
         $user_id    = get_current_user_id();
 
 
-        if ($favourite == 'true') {
+        if ( $favourite == 'true' || $favourite === true ) {
             $lastFavourite = Meta::where([
-				'entity_id'  => $user_id,
+				'entity_id'   => $user_id,
 				'entity_type' => 'project',
-				'meta_key'		=> 'favourite_project'
+				'meta_key'    => 'favourite_project'
 			])->max('meta_value');
+            
             $lastFavourite = intval($lastFavourite ) + 1;
+			
 			pm_update_meta( $user_id, $project_id, 'project', 'favourite_project', $lastFavourite );
 
         } else {
@@ -398,8 +400,13 @@ class Project_Controller {
 		}
 
 		do_action( "pm_after_favaurite_project", $request );
+		
+		if ( $favourite == 'true' ) {
+			$response = $this->get_response( null, [ 'message' =>  __( "The project has been marked as favorite", 'wedevs-project-manager' ) ] );
+		} else {
 
-		$response = $this->get_response( null, [ 'message' =>  __( "The project has been marked as favourite", 'wedevs-project-manager' ) ] );
+			$response = $this->get_response( null, [ 'message' =>  __( "The project has been removed from favorite", 'wedevs-project-manager' ) ] );
+		}
 
         return $response;
 	}
