@@ -120,4 +120,11 @@ class AllSteps extends \AcceptanceTester
 		$I->fillField('//div/div/div/div/input', $this->faker()->text( 100 ));
 	    $I->click('//div[3]/div/div/div[2]/div/div/div/div/div/a/span');//press add task
 	}
+	public function checkError()
+    {
+        $I = $this;
+        $I->dontSee('Warning');
+        $I->dontSee('Fatal error');
+        $I->dontSee('Notice');
+    }
 }
