@@ -290,11 +290,16 @@
 
             getProjects () {
                 var self = this;
-
+                var userID = PM_Vars.current_user.ID;
+                if( !this.isEmpty( this.$route.params.user_id ) ) {
+                    userID = this.$route.params.user_id;
+                }
+                
                 var data = {
                     select: 'id, title',
                     with: 'assignees',
-                    status: 'incomplete'
+                    status: 'incomplete',
+                    inUsers: userID
                 }
 
                 if(this.users.length) {
@@ -302,7 +307,7 @@
                 }
 
                 var request = {
-                    url: self.base_url + '/pm/v2/advanced/projects',
+                    url: self.base_url + 'pm/v2/projects',
                     data: data,
                     success (res) {
                         self.projects = res.data;
@@ -343,7 +348,7 @@
                 }
 
                 var request = {
-                    url: self.base_url + '/pm/v2/advanced/'+self.project.id+'/task-lists',
+                    url: self.base_url + 'pm/v2/advanced/'+self.project.id+'/task-lists',
                     data: {
                         select: 'id, title, project_id',
                         project_id: self.project.id,
@@ -387,7 +392,7 @@
                 }
                 
                 var request = {
-                    url: self.base_url + '/pm/v2/advanced/'+project_id+'/task-lists',
+                    url: self.base_url + 'pm/v2/advanced/'+project_id+'/task-lists',
                     data: {
                         select: 'id, title, project_id',
                         project_id: project_id,

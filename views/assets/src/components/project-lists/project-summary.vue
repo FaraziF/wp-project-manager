@@ -10,7 +10,8 @@
                     <h3 class="pm-project-title pm-d-inline pm-pull-left">
                         <router-link 
                             :title="project.title"
-                            :to="{ name: 'pm_overview',  params: { project_id: project.id }}">
+                            :to="{ name: 'task_lists',  params: { project_id: project.id }}"
+                        >
                             {{ project.title }}
                         </router-link>
                     </h3>
@@ -275,13 +276,29 @@
             },
             projectMarkAsDoneUndone (project) {
                 var self = this;
-                project.status = project.status === 'complete' ? 'incomplete' : 'complete';
-                
+                var status = '';
+
+                if(
+                    project.status=='complete'
+                        ||
+                    project.status=='1'
+                ) {
+                    status = 'incomplete';
+                }
+
+                if(
+                    project.status=='incomplete'
+                        ||
+                    project.status=='0'
+                ) {
+                    status = 'complete';
+                }
+           
                 var args ={
                     data:{
                         'id': project.id,
                         'title': project.title,
-                        'status': project.status,
+                        'status': status,
                     },
                     callback: function(project) {
 

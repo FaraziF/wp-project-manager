@@ -4,17 +4,25 @@
 		v-if="!options.input" 
 		v-date-field 
 		:class="`${id} ${contentClass} nonsortable`"
-	/>
+	>
+		<slot></slot>
+	</div>
+
 	<input 
 		v-else
 		type="text" 
 		:placeholder="options.placeholder" 
 		:class="`${id} ${contentClass} nonsortable`"
-		:value="dateValue"
 		v-date-field
 	/>
 	
 </template>
+
+<style lang="less">
+	.daterangepicker {
+		z-index: 99999 !important;
+	}
+</style>
 
 <script>
 

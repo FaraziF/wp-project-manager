@@ -57,7 +57,7 @@
                     <!-- <td>{{ task.id }}</td> -->
                     <td><a href="#" @click.prevent="popuSilgleTask(task)">{{ task.title }}</a></td>
                     <td>
-                        <router-link
+                        <!-- <router-link
                           :to="{
                             name: 'single_list',
                             params: {
@@ -66,19 +66,29 @@
                             }
                         }">
                             {{ task.task_list.data.title }}
-                        </router-link>
+                        </router-link> -->
+
+                        <!-- For ERP Integration -->
+                        <a :href="`${PM_Vars.project_page}#/projects/${task.project_id}/task-lists/${task.task_list_id}`">
+                            {{ task.task_list.data.title }}
+                        </a>
 
                     </td>
                     <td>
-                        <router-link
+                       <!--  <router-link
                           :to="{
                             name: 'task_lists',
                             params: {
                                 project_id: task.project_id,
                             }
                         }">
-                            {{ task.project.title }}
-                        </router-link>
+                            {{ task.project_title }}
+                        </router-link> -->
+                        
+                        <!-- For ERP Integration -->
+                        <a :href="`${PM_Vars.project_page}#/projects/${task.project_id}/task-lists`">
+                            {{ task.project_title }}
+                        </a>
                     </td>
                     <td v-html="getRelativeDueDate(task)"></td>
                     <td>{{ getCreatedAtValue(task) }}</td>
@@ -229,6 +239,7 @@
 
                 return '&ndash;';
             },
+            
             getDate(task) {
                 if(typeof task.completed_at != 'undefined' && task.completed_at != '') {
                     return pm.Moment( task.completed_at ).format( 'MMM DD, YYYY' );
@@ -237,6 +248,7 @@
                 return '';
                 
             },
+
             goToSigleList (task) {
                 this.$router.push({
                     name: 'single_list',
@@ -246,6 +258,7 @@
                     }
                 });
             },
+
             goToProject(task) {
                 this.$router.push({
                     name: 'task_lists',
@@ -254,14 +267,17 @@
                     }
                 });
             },
+
             afterCloseSingleTaskModal () {
                 this.individualTaskId = false;
                 this.individualProjectId = false;
             },
+
             popuSilgleTask (task) {
                 this.individualTaskId = task.id;
                 this.individualProjectId = task.project_id;
             },
+
             getCreatedAtValue (task) {
                 if(typeof this.$route.query.start_at == 'undefined' || typeof this.$route.query.due_date == 'undefined') {
                     let created_at = task.created_at.date ? task.created_at.date : task.created_at;
@@ -280,6 +296,7 @@
                     return this.getDate(start_at) +' - '+ this.getDate(due_date);
                 }
             },
+
             getDate(date) {
                 if(typeof date != 'undefined' && date != '') {
                     return pm.Moment( date ).format( 'MMM DD, YYYY' );
@@ -288,6 +305,7 @@
                 return '';
                 
             },
+
             getCreatedAtLabel () {
 
                 if(typeof this.$route.query.start_at == 'undefined' || typeof this.$route.query.due_date == 'undefined') {

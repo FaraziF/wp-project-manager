@@ -1,5 +1,6 @@
 import TaskLists from '@components/project-task-lists/mixin';
 import Url from '@wordpress/url';
+import classnames from 'classnames';
 
 export default {
 
@@ -25,6 +26,16 @@ export default {
     },
 
     methods: {
+
+        isArchivePage () {
+            return this.$route.name == 'task_lists_archive' || this.$route.name == 'task_lists_archive_pagination'
+        },
+
+        classnames ( classAttrs ) {
+            return classnames( classAttrs );
+
+        },
+
         cutString(string, length, dot){
             var output = "";
             output = string.substring(0, parseInt(length));
@@ -33,6 +44,7 @@ export default {
             }
             return output;
         },
+
         hasTaskStartField () {
             if (!PM_Vars.is_pro) {
                 return false;
@@ -42,16 +54,25 @@ export default {
            
            return status == 'on' || status === true ? true : false;
         },
+
         is_array(items) {
             if(Object.prototype.toString.call(items) == '[object Array]' ) {
                 return true;
             }
         },
+
         is_object(items) {
             if(Object.prototype.toString.call(items) == '[object Object]' ) {
                 return true;
             }
         },
+
+        isValidDate(date) {
+            date = pm.Moment(new Date(date));
+
+            return date.isValid()
+        },
+
         secondsToHms (d) {
             d = Number(d);
             var h = Math.floor(d / 3600);
@@ -64,6 +85,7 @@ export default {
                 'second': s
             }
         },
+
         hexToRgb(hex) {
             // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
             var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -78,6 +100,7 @@ export default {
                 2: parseInt(result[3], 16)
             } : null;
         },
+
         getTextColor (rgb) {
 
             if(typeof rgb !== 'object') {
@@ -101,9 +124,11 @@ export default {
             }
 
         },
+
         getInboxId () {
             return this.$store.state.project.list_inbox;
         },
+
         getUniqueRandomNumber() {
             var random = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -119,6 +144,7 @@ export default {
             this.getUniqueRandomNumber();
 
         },
+
         enableDisable (key, status) {
             status = status || '';
 
@@ -128,26 +154,34 @@ export default {
                 this[key] = status;
             }
         },
+
         __(text, domain) {
             return __(text, domain);
         },
+
         sprintf: sprintf,
+
         user_can (cap) {
             return pmUserCan( cap, this.$store.state.project );
         },
+
         is_user_in_project () {
             return pmIsUserInProject( this.$store.state.project );
         },
+
         is_manager (project) {
             var project = project || this.$store.state.project;
             return pmIsManager(project);
         },
+
         has_manage_capability () {
             return pmHasManageCapability();
         },
+
         has_create_capability () {
             return pmHasCreateCapability();
         },
+
         intersect(a, b) {
             var d = {};
             var results = [];
@@ -160,6 +194,7 @@ export default {
             }
             return results;
         },
+
         can_edit_comment (commnet) {
             var user = PM_Vars.current_user;
             if (commnet.commentable_type == 'task_activity') {
@@ -174,6 +209,7 @@ export default {
 
             return false;
         },
+
         pad2 (number) {
            return (number < 10 ? '0' : '') + number;
         },
@@ -278,7 +314,7 @@ export default {
          *
          * @return string
          */
-        dateFormat ( date, formate ) {
+        pmDateFormat( date, formate ) {
             var formate = formate || 'MMM D';
             if ( !date ) {
                 return;
@@ -288,7 +324,43 @@ export default {
             return pm.Moment(date).format(formate);
         },
 
-                /**
+        isEmpty (mixedVar) {
+
+            var undef
+            var key
+            var i
+            var len
+            var emptyValues = [undef, null, false, 0, '', '0']
+
+            if( mixedVar === '' ) {
+                return true;
+            }
+
+            if( ! this.is_object( mixedVar ) && !this.is_array( mixedVar ) ) {
+                if ( isNaN( mixedVar ) ) {
+                    return true;
+                }
+            }
+           
+
+            for (i = 0, len = emptyValues.length; i < len; i++) {
+                if (mixedVar === emptyValues[i]) {
+                    return true
+                }
+            }
+
+            if (typeof mixedVar === 'object') {
+                for (key in mixedVar) {
+                    if ( mixedVar.hasOwnProperty(key) ) {
+                        return false
+                    }
+                }
+                return true
+            }
+            return false
+        },
+
+        /**
          * WP settings date format convert to pm.Moment date format with time zone
          *
          * @param  string date
@@ -353,6 +425,7 @@ export default {
             }
 
         },
+
         dataURLtoFile (dataurl, filename) {
             var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
                 bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -361,6 +434,7 @@ export default {
             }
             return new File([u8arr], filename, {type:mime});
         },
+
         httpRequest (property) {
 
             if ( property.url ) {
@@ -407,17 +481,21 @@ export default {
             }
 
             var self = this;
-            if( typeof store !== 'undefined' ) {
-                var mutations = store.mutations || {}; //self.$options.mutations;
-                var state = store.state || {}; //self.$options.state;
-            }
+            //if( typeof store !== 'undefined' ) {
+            var mutations = store.mutations || {}; //self.$options.mutations;
+            var state = store.state || {}; //self.$options.state;
+            var getters = store.getters || {}; //self.$options.getters;
+            var actions = store.actions || {}; //self.$options.actions;
+            //}
 
             // register a module `myModule`
 
             self.$store.registerModule(module_name, {
                 namespaced: true,
                 state,
+                getters,
                 mutations,
+                actions
             });
         },
 
@@ -442,7 +520,7 @@ export default {
             args = pm_apply_filters( 'before_project_save', args );
             var request = {
                 type: 'POST',
-                url: this.base_url + '/pm/v2/projects/',
+                url: this.base_url + 'pm/v2/projects/',
                 data: args.data,
                 success (res) {
                     jQuery( "#pm-project-dialog" ).dialog('destroy');
@@ -504,7 +582,7 @@ export default {
             args = pm_apply_filters( 'before_project_save', args );
             var request = {
                 type: 'POST',
-                url: this.base_url + '/pm/v2/projects/'+ args.data.id+'/update',
+                url: this.base_url + 'pm/v2/projects/'+ args.data.id+'/update',
                 data: args.data,
                 success (res) {
 
@@ -607,7 +685,7 @@ export default {
             conditions = self.generateConditions(conditions);
 
             var request_data = {
-                url: self.base_url + '/pm/v2/projects/search?'+conditions,
+                url: self.base_url + 'pm/v2/projects/search?'+conditions,
                 data: args.conditions,
                 success (res) {
 
@@ -649,7 +727,7 @@ export default {
             }
 
             self.httpRequest({
-                url:self.base_url + '/pm/v2/projects/'+ args.project_id + '?' + conditions ,
+                url:self.base_url + 'pm/v2/projects/'+ args.project_id + '?' + conditions ,
                 success (res) {
                     if (typeof args.callback === 'function' ) {
                         args.callback.call(self, res);
@@ -668,6 +746,7 @@ export default {
             });
 
         },
+
         getUsers ( args ) {
             var self = this;
             var pre_define ={
@@ -687,7 +766,7 @@ export default {
             }
 
             self.httpRequest({
-                url: self.base_url + '/pm/v2/users/?' + conditions ,
+                url: self.base_url + 'pm/v2/users/?' + conditions ,
                 data: args.data,
                 success (res) {
                     if (typeof args.callback === 'function' ) {
@@ -716,7 +795,7 @@ export default {
             }
 
             self.httpRequest({
-                url: self.base_url + '/pm/v2/users/'+ args.data.user_id + '?' + conditions ,
+                url: self.base_url + 'pm/v2/users/'+ args.data.user_id + '?' + conditions ,
                 success (res) {
                     if (typeof args.callback === 'function' ) {
                         args.callback.call(self, res);
@@ -724,7 +803,6 @@ export default {
                 }
             });
         },
-
 
         get_search_user(args) {
             var self = this;
@@ -741,7 +819,7 @@ export default {
             var conditions = self.generateConditions(args.conditions);
 
             var request = {
-                url: self.base_url + '/pm/v2/users/search?' + conditions ,
+                url: self.base_url + 'pm/v2/users/search?' + conditions ,
                 success (res) {
                     if (typeof args.callback === 'function' ) {
                         args.callback.call(self, res);
@@ -805,7 +883,7 @@ export default {
             var conditions = self.generateConditions(conditions);
 
             this.httpRequest({
-                url: self.base_url + '/pm/v2/categories?' + conditions,
+                url: self.base_url + 'pm/v2/categories?' + conditions,
                 success (res) {
                     self.$root.$store.commit('setCategories', res.data);
                     self.$root.$store.commit('setCategoryMeta', res.meta);
@@ -831,7 +909,7 @@ export default {
             }
 
             self.httpRequest({
-                url: self.base_url + '/pm/v2/roles',
+                url: self.base_url + 'pm/v2/roles',
                 success (res) {
                     self.$root.$store.commit('setRoles', res.data);
 
@@ -841,6 +919,7 @@ export default {
                 }
             });
         },
+
         /**
          * Get index from array object element
          *
@@ -853,7 +932,7 @@ export default {
             var index = false;
 
             jQuery.each(itemList, function(key, item) {
-                if (item[slug] === id) {
+                if (item[slug] == id) {
                     index = key;
                 }
             });
@@ -869,7 +948,7 @@ export default {
             var self = this;
 
             self.httpRequest({
-                url: self.base_url + '/pm/v2/projects/'+self.project_id+'/files/' + file_id+'/delete',
+                url: self.base_url + 'pm/v2/projects/'+self.project_id+'/files/' + file_id+'/delete',
                 type: 'POST',
                 success (res) {
 
@@ -979,7 +1058,7 @@ export default {
             }
             var self = this;
             var request_data = {
-                url: self.base_url + '/pm/v2/projects/' + id+'/delete',
+                url: self.base_url + 'pm/v2/projects/' + id+'/delete',
                 type: 'POST',
                 success (res) {
                     self.$store.commit('afterDeleteProject', id);
@@ -1019,6 +1098,7 @@ export default {
                 }
             }
         },
+
         projects_view_class (){
             return this.$store.state.projects_view === 'grid_view' ? 'pm-project-grid': 'pm-project-list'
         },
@@ -1060,6 +1140,7 @@ export default {
 
             return query.slice(0, -1);
         },
+
         /**
          * [get Global Milestones in every page where milestone need and store in $root.$store.state.milestone ]
          * @param  {Function} callback [optional]
@@ -1080,7 +1161,7 @@ export default {
                 data: {
                     status: 1
                 },
-                url: self.base_url + '/pm/v2/projects/'+self.project_id+'/milestones',
+                url: self.base_url + 'pm/v2/projects/'+self.project_id+'/milestones',
                 success (res) {
                     self.$root.$store.commit( 'setMilestones', res.data );
 
@@ -1137,8 +1218,8 @@ export default {
             id = id || false;
 
             var url = project_id
-                ? self.base_url + '/pm/v2/projects/'+project_id+'/settings'
-                : self.base_url + '/pm/v2/settings';
+                ? self.base_url + 'pm/v2/projects/'+project_id+'/settings'
+                : self.base_url + 'pm/v2/settings';
 
             var request = {
                 url: url,
@@ -1160,7 +1241,7 @@ export default {
 
         saveTrelloImportedData (formDataObj,cred,urlString,callback) {
             var self = this;
-            var url = self.base_url + '/pm/v2/'+ urlString;
+            var url = self.base_url + 'pm/v2/'+ urlString;
 
             var request = {
                 url: url,
@@ -1185,13 +1266,12 @@ export default {
             self.httpRequest(request);
         },
 
-
         deleteProjectSettings (id, args) {
             var self  = this;
 
             args = args || {};
 
-            var url = self.base_url + '/pm/v2/projects/'+this.project_id+'/delete/'+id+'/settings'
+            var url = self.base_url + 'pm/v2/projects/'+this.project_id+'/delete/'+id+'/settings'
 
             var request = {
                 url: url,
@@ -1237,7 +1317,7 @@ export default {
 
             var self = this;
             var request = {
-                url: self.base_url + '/pm/v2/projects/'+this.project_id+'/settings?key=list_view_type',
+                url: self.base_url + 'pm/v2/projects/'+this.project_id+'/settings?key=list_view_type',
                 data: {},
                 type: 'GET',
                 success (res) {
@@ -1310,12 +1390,18 @@ export default {
         },
 
         fileDownload (fileId) {
-            window.location.href = this.base_url + '/pm/v2/projects/'+this.project_id+'/files/'+fileId+'/users/'+PM_Vars.current_user.ID+'/download';
+            let url = this.base_url + '/pm/v2/projects/'+this.project_id+'/files/'+fileId+'/users/'+PM_Vars.current_user.ID+'/download';
+                url = this.setPermalink( url );
+            
+            window.location.href = url;
         },
 
         getDownloadUrl(fileId, project_id) {
             project_id = project_id || this.project_id;
-            return this.base_url + '/pm/v2/projects/'+ project_id +'/files/'+fileId+'/users/'+PM_Vars.current_user.ID+'/download';
+            let url = this.base_url + '/pm/v2/projects/'+ project_id +'/files/'+fileId+'/users/'+PM_Vars.current_user.ID+'/download';
+            url = this.setPermalink( url );
+
+            return url;
         },
 
         copy (text) {
@@ -1387,7 +1473,61 @@ export default {
                     }, 100); // cleanup
                 }
             }
-        }
+        },
+
+        isEmpty (mixedVar) {
+
+
+            if( 
+                mixedVar === false 
+                    ||
+                mixedVar == 0
+                    || 
+                mixedVar == '0'
+                    ||
+                mixedVar == null
+                    ||
+                mixedVar == ''
+                    ||
+                typeof mixedVar == 'undefined'
+            ) {
+                return true;
+            }
+
+            if(this.is_array(mixedVar)) {
+                if(!mixedVar.length) {
+                    return true;
+                }
+            }
+
+            if (this.is_object(mixedVar)) {
+                if( jQuery.isEmptyObject(mixedVar) ) {
+                    return true;
+                }
+            }
+
+            return false
+        },
+
+        can_edit_task (task) {
+            var user = PM_Vars.current_user;
+            
+            if (this.is_manager()) {
+                return true;
+            }
+            
+            // if (typeof task.id  === 'undefined' && this.user_can("create_task")) {
+            //     return true;
+            // }
+
+            let creatorId = task.creator.data.id ? task.creator.data.id : task.creator.data.ID;
+            
+            if ( parseInt(creatorId) === parseInt(user.ID) ){
+                return true;
+            }
+
+            return false;
+        },
     }
 };
 

@@ -1,3 +1,36 @@
+= v2.4.3 - Sep 10, 2020 =
+
+**Update** In dashboard project menu bar has been rearranged. 
+**Update** In single task now user can navigate to project and task list.   
+**Fix** Co-worker can not be deleted in self created task comment. 
+**Fix** In frontend project manager date picker was not showing in single task. 
+**Fix** In my task, task create form did not change the list even the project has been change.
+**Fix** Project title was missing from my-task.
+
+= v2.4.2 - Aug 26, 2020 =
+
+* **Fix** Single task popup is not appearing.
+
+= v2.4.1 - Aug 25, 2020 =
+
+* **New** Add new task type for individual task.
+* **Fix** During task update the date picker was not showing.
+* **Fix** Was not able to delete the task list description.
+* **Fix** Optimize code for security issue.
+* **Fix** Task list title was not able to update.
+* **Fix** Completed project was not able to restore.
+
+= v2.4.0 - Jul 17, 2020 =
+
+* **New** Component for pm-vue2-daterange-picker, pm-button, pm-do-slot.
+* **New** Change all date picker from all forms.
+* **New** Manage do-action content without any wrapper.
+* **New** API end point is now working for all permalink.
+* **Update** UI/UX for creating new task.
+* **Update** UI/UX for add new members from single task popup.
+* **Update** UI/UX for task due date from single task popup.
+* **Fix** Could not download files from the project.
+
 = v2.3.11 - Jun 16, 2020 =
 
 * **Fix** API end point is now working for all permalink.
@@ -19,6 +52,16 @@
 * **Fix** On My task overview graph showing error when there are no task.
 * **Fix** Task assigned date is not showing in a single task popup. 
 * **Fix** Progress bar continue loading after clicking on Clear button on the task filter. 
+
+= v2.3.8 - Mar 12, 2020 =
+
+* **New** New function for getting tasks, messages, milestones, discussions, projects, comments, files, users.
+* **New** Toggle Project description.
+* **Fix** Overview graph showing error when there is no task. 
+* **Fix** Task assigned date is not showing in single task popup.
+* **Fix** Progress bar continue loading when clearing the task filter.
+* **Update** The unnecessary load more button is showing when delete completed task.
+
 
 = v2.3.8 - Mar 12, 2020 =
 

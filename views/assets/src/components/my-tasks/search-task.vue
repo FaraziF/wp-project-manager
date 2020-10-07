@@ -354,10 +354,19 @@
 
 			getProjects () {
 				var self = this;
+
+				var userID = PM_Vars.current_user.ID;
+                if( !this.isEmpty( this.$route.params.user_id ) ) {
+                    userID = this.$route.params.user_id;
+                }
+
 				var request_data = {
-	                url: self.base_url + '/pm/v2/advanced/projects/?',
+	                url: self.base_url + 'pm/v2/projects/?',
 	                data: {
-	                	select: ['id', 'title'],
+	                	select: 'id, title',
+	                    with: 'assignees',
+	                    status: 'incomplete',
+	                    inUsers: userID
 	                },
 	                type: 'GET',
 	                success (res) {
@@ -566,7 +575,7 @@
 						1 : this.$route.params.current_page_number;
 				
 				var request_data = {
-	                url: self.base_url + '/pm/v2/tasks',
+	                url: self.base_url + 'pm/v2/tasks',
 	                data: data,
 	                type: 'GET',
 	                success (res) {
